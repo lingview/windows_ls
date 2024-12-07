@@ -14,16 +14,18 @@ typedef struct {
 } FileEntry;
 
 int CompareBySize(const void *a, const void *b);
+
 int CompareByTime(const void *a, const void *b);
 
 void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursive, int horizontal, int sortBySize, int sortByTime, int showDirsOnly);
+
 void PrintLongFormat(const WIN32_FIND_DATA *findFileData);
 
 int _tmain(int argc, TCHAR *argv[])
 {
     int i = 1;
-    int listLong = 0;
-    int showAll = 0;
+    int listLong = 0; 
+    int showAll = 0;  
     int recursive = 0;
     int horizontal = 1;
     int sortBySize = 0;
@@ -58,16 +60,17 @@ int _tmain(int argc, TCHAR *argv[])
                 sortByTime = 1;
                 break;
             default:
-                _ftprintf(stderr, _T("Unknown option: -%c\n"), *p);
+                _ftprintf(stderr, _T("未知选项: -%c\n"), *p);
                 return 1;
             }
         }
         ++i;
     }
 
+    // 检查排序选项冲突
     if (sortBySize && sortByTime)
     {
-        _ftprintf(stderr, _T("Cannot use both -s and -t options simultaneously.\n"));
+        _ftprintf(stderr, _T("不能同时使用 -s 和 -t 选项。\n"));
         return 1;
     }
 
@@ -93,13 +96,13 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
     WIN32_FIND_DATA findFileData;
     HANDLE hFind = INVALID_HANDLE_VALUE;
     TCHAR szDir[MAX_PATH];
-    _stprintf_s(szDir, MAX_PATH, _T("%s\\*"), lpPath);
+    _stprintf_s(szDir, MAX_PATH, _T("%s\\*"), lpPath); 
 
     hFind = FindFirstFile(szDir, &findFileData);
 
     if (INVALID_HANDLE_VALUE == hFind)
     {
-        _tprintf(_T("FindFirstFile failed (%d)\n"), GetLastError());
+        _tprintf(_T("FindFirstFile 失败 (%d)\n"), GetLastError());
         return;
     }
     else
@@ -111,6 +114,7 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
         {
             if (!showAll)
             {
+                // 跳过 . 和 ..
                 if (_tcscmp(findFileData.cFileName, _T(".")) == 0 ||
                     _tcscmp(findFileData.cFileName, _T("..")) == 0)
                 {
@@ -118,6 +122,7 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
                 }
             }
 
+            // 仅显示目录
             if (showDirsOnly && !(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
             {
                 continue;
@@ -128,11 +133,13 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
             fileCount++;
         } while (FindNextFile(hFind, &findFileData) != 0);
 
+        // 检查FindNextFile错误
         if (GetLastError() != ERROR_NO_MORE_FILES)
         {
-            _tprintf(_T("FindNextFile failed (%d)\n"), GetLastError());
+            _tprintf(_T("FindNextFile 失败 (%d)\n"), GetLastError());
         }
 
+        // 排序文件
         if (sortBySize)
         {
             qsort(files, fileCount, sizeof(FileEntry), CompareBySize);
@@ -143,6 +150,7 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
         }
 
         int printedCount = 0;
+        // 打印文件信息
         for (int j = 0; j < fileCount; ++j)
         {
             if (listLong)
@@ -165,6 +173,7 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
                 }
             }
 
+            // 递归列出子目录
             if (recursive && (files[j].data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
                 _tcscmp(files[j].data.cFileName, _T(".")) != 0 &&
                 _tcscmp(files[j].data.cFileName, _T("..")) != 0)
@@ -176,6 +185,7 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
             }
         }
 
+        // 处理横向排布的换行
         if (horizontal && printedCount % 5 != 0) { 
             _tprintf(_T("\n"));
         }
@@ -188,6 +198,7 @@ void ListFilesInDirectory(LPCTSTR lpPath, int listLong, int showAll, int recursi
 void PrintLongFormat(const WIN32_FIND_DATA *findFileData)
 {
     TCHAR attrs[6]; 
+    // 格式化文件属性
     _stprintf_s(attrs, sizeof(attrs) / sizeof(TCHAR), _T("%c%c%c%c%c"),
                 (findFileData->dwFileAttributes & FILE_ATTRIBUTE_READONLY) ? 'r' : '-',
                 (findFileData->dwFileAttributes & FILE_ATTRIBUTE_HIDDEN) ? 'h' : '-',
@@ -217,6 +228,7 @@ int CompareBySize(const void *a, const void *b)
     sizeB.LowPart = ((FileEntry *)b)->data.nFileSizeLow;
     sizeB.HighPart = ((FileEntry *)b)->data.nFileSizeHigh;
 
+
     if (sizeA.QuadPart < sizeB.QuadPart)
         return -1;
     if (sizeA.QuadPart > sizeB.QuadPart)
@@ -235,8 +247,6 @@ int CompareByTime(const void *a, const void *b)
         return 1;
     return 0;
 }
-
-
 
 /**
  * 参数指南
